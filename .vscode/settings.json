@@ -1,0 +1,11 @@
+{
+    "extensions.ignoreRecommendations": true,
+    "C_Cpp.default.configurationProvider": "particle.particle-vscode-core",
+    "files.associations": {
+        "*.ino": "cpp"
+    },
+    "particle.targetPlatform": "boron",
+    "particle.firmwareVersion": "6.1.1",
+    "particle.targetDevice": "spark_owl",
+    "particle.debugWarningShown": true
+}
