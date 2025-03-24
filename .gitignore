@@ -53,3 +53,6 @@ Thumbs.db
 *.su
 *.idb
 *.pdb
+
+# Ignore Windows NUL file
+nul
