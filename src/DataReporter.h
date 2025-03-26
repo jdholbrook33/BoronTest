@@ -38,9 +38,10 @@ private:
   // Reset reason tracking
   char _resetReasonStr[32];
   
-  // Publishing intervals
-  const unsigned long HOURLY_PUBLISH = 600000;           // 10 minutes for testing
-  const unsigned long DIAGNOSTIC_PUBLISH_INTERVAL = 900000; // 15 minutes for testing
+  // Publishing intervals (in milliseconds)
+  const unsigned long HOURLY_PUBLISH = 3600000;           // 1 hour (for demo)
+  const unsigned long DIAGNOSTIC_PUBLISH_INTERVAL = 3600000; // 1 hour (heartbeat)
+  // TODO: For production, adjust HOURLY_PUBLISH to 21600000 (6 hours) or 43200000 (12 hours)
   
   // Calculate hourly average water usage
   float calculateHourlyAverage() const;

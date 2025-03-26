@@ -3,10 +3,12 @@
 #include "DataReporter.h"
 #include "SystemMonitor.h"
 #include "Storage.h"
+#include "DisplayComm.h"
 
 SYSTEM_MODE(AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
+// Reduce logging to INFO level only
 SerialLogHandler logHandler(LOG_LEVEL_INFO);
 
 // Enable reset info to track watchdog resets
@@ -23,27 +25,16 @@ const float PULSES_PER_GALLON = 1700.0;
 FlowSensor flowSensor(FLOW_SENSOR_PIN, LED_PIN, PULSES_PER_GALLON);
 DataReporter dataReporter(&flowSensor, "pool_1");
 SystemMonitor systemMonitor;
+DisplayComm displayComm(&flowSensor);
 
 // Daily reset tracking
 unsigned long dailyResetTime;
 const unsigned long DAILY_RESET_INTERVAL = 86400000; // 24 hours in milliseconds
 
-// Print current time
-void printCurrentTime() {
-  if (Time.isValid()) {
-    Serial.printlnf("Current time: %s", Time.timeStr().c_str());
-    Serial.printlnf("Unix timestamp: %lu", Time.now());
-    Serial.printlnf("Time is synced: %s", Time.isValid() ? "YES" : "NO");
-  } else {
-    Serial.println("Time is not yet synchronized");
-  }
-}
-
 void setup() {
-  Serial.begin(9600); 
-  delay(1000); // Brief delay for serial stability
+  delay(1000); // Brief delay for stability
   
-  Serial.println("Pool Flow Monitor Initializing");
+  Log.info("Pool Flow Monitor Starting");
   
   // Initialize Storage system
   Storage::begin();
@@ -55,20 +46,19 @@ void setup() {
   if (dailyResetTime == 0) {
     dailyResetTime = millis();
     Storage::saveDailyResetTime(dailyResetTime);
-    Serial.println("Initializing daily counter");
   }
   
   // Wait for time synchronization
   Particle.syncTime();
   waitFor(Time.isValid, 30000); // Wait up to 30 seconds for time sync
-  printCurrentTime();
   
   // Initialize all system components
   systemMonitor.begin();
   flowSensor.begin();
   dataReporter.begin();
+  displayComm.begin();
   
-  Serial.println("Initialization complete, waiting for boot sequence...");
+  Log.info("System initialized");
 }
 
 void loop() {
@@ -85,16 +75,19 @@ void loop() {
     // Update data reporter (handles publishing based on intervals)
     dataReporter.update(currentTime);
     
-    // Periodically check and print time
-    static unsigned long lastTimeCheck = 0;
-    if (currentTime - lastTimeCheck >= 60000) { // Every minute
-      printCurrentTime();
-      lastTimeCheck = currentTime;
+    // Update display with current data
+    displayComm.update(currentTime);
+    
+    // Time sync check once per hour (aligned with data publishing)
+    static unsigned long lastTimeSync = 0;
+    if (currentTime - lastTimeSync >= 3600000) { // 1 hour in milliseconds
+      Particle.syncTime();
+      lastTimeSync = currentTime;
     }
     
     // Check if it's time for daily reset (24 hours)
     if (currentTime - dailyResetTime >= DAILY_RESET_INTERVAL) {
-      Serial.println("Performing daily reset");
+      Log.info("Daily reset - Total gallons: %.2f", flowSensor.getDailyGallonsTotal());
       
       // Reset the flow sensor's daily counters
       flowSensor.performDailyReset();
